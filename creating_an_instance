@@ -1,0 +1,18 @@
+amend your instance.tf file with details
+provider "aws" {
+  access_key = "AKIAWWJXRNRDIZ2NYOM5"
+  secret_key = "R32jByD2a4IzHjw3jWagJSULjs2Nl+Cofm9Fh58V"
+  region     = "eu-west-1"
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-09b9e380df60300c8"
+  instance_type = "t2.micro"
+}
+
+terrafom init #This loads the aws plugin NOTE: It I used another provider in my .tf it would load that plug in
+terraform plan # This will show you exactly what changes will be made
+terraform plan -out <file name>  # This will save the changes from the plan to your file name
+
+
+terraform apply <file-name> # this will ensure you only apply the changes that were shown in the plan  🚩️
