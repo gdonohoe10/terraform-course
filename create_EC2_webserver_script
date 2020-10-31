@@ -1,0 +1,113 @@
+##The following files are required to create an nginx web server in AWS
+#Note the creation of the ssh key which creates the key pair to the directory
+
+#after file creatio
+
+greg@greg-linux:~/terraform/terraform-course/demo-2$ ls
+demo2-apply  instance.tf  mykey  mykey.pub  provider.tf  script.sh  terraform.tfstate  terraform.tfvars  vars.tf  versions.tf
+
+
+greg@greg-linux:~/terraform/terraform-course/demo-2$ cat instance.tf 
+resource "aws_key_pair" "mykey" {
+  key_name   = "mykey"
+  public_key = file(var.PATH_TO_PUBLIC_KEY)
+}
+
+resource "aws_instance" "example" {
+  ami           = lookup(var.AMIS, var.AWS_REGION)
+  instance_type = "t2.micro"
+  key_name      = aws_key_pair.mykey.key_name
+
+  provisioner "file" {
+    source      = "script.sh"
+    destination = "/tmp/script.sh"
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /tmp/script.sh",
+      "sudo sed -i -e 's/\r$//' /tmp/script.sh",  # Remove the spurious CR characters.
+      "sudo /tmp/script.sh",
+    ]
+  }
+  connection {
+    host        = coalesce(self.public_ip, self.private_ip)
+    type        = "ssh"
+    user        = var.INSTANCE_USERNAME
+    private_key = file(var.PATH_TO_PRIVATE_KEY)
+  }
+}
+
+greg@greg-linux:~/terraform/terraform-course/demo-2$ cat provider.tf 
+provider "aws" {
+  access_key = var.AWS_ACCESS_KEY
+  secret_key = var.AWS_SECRET_KEY
+  region = var.AWS_REGION
+}
+greg@greg-linux:~/terraform/terraform-course/demo-2$ cat script.sh 
+#!/bin/bash
+
+# sleep until instance is ready
+until [[ -f /var/lib/cloud/instance/boot-finished ]]; do
+  sleep 1
+done
+
+# install nginx
+apt-get update
+apt-get -y install nginx
+
+# make sure nginx is started
+service nginx start
+greg@greg-linux:~/terraform/terraform-course/demo-2$ cat vars.tf 
+variable "AWS_ACCESS_KEY" {
+}
+
+variable "AWS_SECRET_KEY" {
+}
+
+variable "AWS_REGION" {
+  default = "eu-west-1"
+}
+
+variable "AMIS" {
+  type = map(string)
+  default = {
+    us-east-1 = "ami-0739f8cdb239fe9ae"
+    us-west-2 = "ami-008b09448b998a562"
+    eu-west-1 = "ami-09b9e380df60300c8"
+  }
+}
+
+variable "PATH_TO_PRIVATE_KEY" {
+  default = "mykey"
+}
+
+variable "PATH_TO_PUBLIC_KEY" {
+  default = "mykey.pub"
+}
+
+variable "INSTANCE_USERNAME" {
+  default = "ubuntu"
+}
+
+greg@greg-linux:~/terraform/terraform-course/demo-2$ cat terraform.tfvars 
+AWS_ACCESS_KEY = "AKIAWWJXRNRDIZ2NYOM5"
+AWS_SECRET_KEY = "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"
+
+greg@greg-linux:~/terraform/terraform-course/demo-2$ cat versions.tf 
+
+terraform {
+  required_version = ">= 0.12"
+}
+greg@greg-linux:~/terraform/terraform-course/demo-2$ history | grep ssh
+  223  ssh-keygen -f mykey
+  
+  terraform init
+  terraform plan -out demo2-apply
+  terraform apply -out demo2-apply
+  
+#From here I was able to http to the public IP of the server
+
+  #terraform destroy
+  
+
+

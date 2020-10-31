@@ -1,0 +1,47 @@
+To create an instance using variables you need the following files
+Note that the keys are saved in the terraform.tfvars file.
+This file is never pushed to git as you do not want keys stored in a repo
+
+greg@greg-linux:~/terraform/terraform-course/demo-1$ ls
+instance.tf  provider.tf  terraform.tfvars  vars.tf
+
+greg@greg-linux:~/terraform/terraform-course/demo-1$ cat ../.gitignore
+*/terraform.tfvars
+
+greg@greg-linux:~/terraform/terraform-course/demo-1$ cat instance.tf 
+resource "aws_instance" "example" {
+  ami           = "${lookup(var.AMIS, var.AWS_REGION)}"
+  instance_type = "t2.micro"
+}
+
+greg@greg-linux:~/terraform/terraform-course/demo-1$ cat provider.tf 
+provider "aws" {
+  access_key = "${var.AWS_ACCESS_KEY}"
+  secret_key = "${var.AWS_SECRET_KEY}"
+  region = "${var.AWS_REGION}"
+}
+
+greg@greg-linux:~/terraform/terraform-course/demo-1$ cat vars.tf
+variable "AWS_ACCESS_KEY" {
+}
+
+variable "AWS_SECRET_KEY" {
+}
+
+variable "AWS_REGION" {
+  default = "eu-west-1"
+}
+
+variable "AMIS" {
+  type = "map"
+  default = {
+    us-east-1 = "ami-0739f8cdb239fe9ae"
+    us-west-2 = "ami-008b09448b998a562"
+    eu-west-1 = "ami-09b9e380df60300c8"
+  }
+}
+
+greg@greg-linux:~/terraform/terraform-course/demo-1$ cat terraform.tfvars 
+AWS_ACCESS_KEY = "AKIAWWJXRNRDIZ2NYOM5"
+AWS_SECRET_KEY = "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"
+
